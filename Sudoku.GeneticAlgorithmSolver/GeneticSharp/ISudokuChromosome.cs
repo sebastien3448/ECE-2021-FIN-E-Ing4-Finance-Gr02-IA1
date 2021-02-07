@@ -1,6 +1,8 @@
 ﻿
 using System.Collections.Generic;
+using GeneticSharp.Domain.Chromosomes;
 using Sudoku.Core;
+using Sudoku.GeneticAlgorithmSolver.GeneticSharp;
 
 namespace Sudoku.GeneticAlgorithmSolver
 {
@@ -9,6 +11,19 @@ namespace Sudoku.GeneticAlgorithmSolver
     /// </summary>
     public interface ISudokuChromosome
     {
-        IList<global::Sudoku.Core.Sudoku> GetSudokus();
+        IList<IList<IList<int>>> UnfilteredPermutations { get; }
+        IList<IList<int>> AllPermutations { get; }
+        IList<IList<IList<int>>> TargetRowsPermutations { get; }
+        object ExtendedMask { get; }
+        SudokuBoard TargetSudokuBoard { get; }
+        int Length { get; }
+
+        IChromosome CreateNew();
+        IChromosome CreateNew();
+        Gene GenerateGene(int geneIndex);
+        Gene GenerateGene(int geneIndex);
+        IList<IList<IList<int>>> GetRowsPermutations();
+        IList<GeneticSharp.SudokuBoard> GetSudokus();
+        IList<SudokuBoard> GetSudokus();
     }
 }

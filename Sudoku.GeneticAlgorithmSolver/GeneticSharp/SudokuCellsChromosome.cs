@@ -2,6 +2,7 @@
 using System.Linq;
 using GeneticSharp.Domain.Chromosomes;
 using GeneticSharp.Domain.Randomizations;
+using Sudoku.GeneticAlgorithmSolver.GeneticSharp;
 
 namespace Sudoku.GeneticAlgorithmSolver
 {
@@ -62,6 +63,11 @@ namespace Sudoku.GeneticAlgorithmSolver
         {
             var sudoku = new Core.Sudoku(GetGenes().Select(g => (int)g.Value));
             return new List<Core.Sudoku>(new[] { sudoku });
+        }
+
+        private IList<SudokuBoard> GetSudokus()
+        {
+            throw new System.NotImplementedException();
         }
     }
 }

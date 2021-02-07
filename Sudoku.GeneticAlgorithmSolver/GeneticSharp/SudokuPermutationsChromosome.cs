@@ -2,6 +2,7 @@
 using System.Linq;
 using GeneticSharp.Domain.Chromosomes;
 using GeneticSharp.Domain.Randomizations;
+using Sudoku.GeneticAlgorithmSolver.GeneticSharp;
 
 namespace Sudoku.GeneticAlgorithmSolver
 {
@@ -9,48 +10,51 @@ namespace Sudoku.GeneticAlgorithmSolver
     /// This more elaborated chromosome manipulates rows instead of cells, and each of its 9 gene holds an integer for the index of the row's permutation amongst all that respect the target mask.
     /// Permutations are computed once when a new Sudoku is encountered, and stored in a static dictionary for further reference.
     /// </summary>
-    public class SudokuPermutationsChromosome : ChromosomeBase, ISudokuChromosome
+    public class SudokuPermutationsChromosome : ISudokuChromosome
     {
-        /// <summary>
-        /// The target Sudoku mask to solve
-        /// </summary>
-        protected readonly Core.Sudoku TargetSudoku;
+
 
         /// <summary>
         /// The list of row permutations accounting for the mask
         /// </summary>
-        protected readonly IList<IList<IList<int>>> TargetRowsPermutations;
+        private IList<IList<IList<int>>> _targetRowsPermutations;
+
 
         /// <summary>
         /// This constructor assumes no mask
         /// </summary>
-        public SudokuPermutationsChromosome() : this(null)
-        {
-        }
+        public SudokuPermutationsChromosome() : this(null) { }
 
         /// <summary>
         /// Constructor with a mask sudoku to solve, assuming a length of 9 genes
         /// </summary>
-        /// <param name="targetCore.Sudoku">the target sudoku to solve</param>
-        public SudokuPermutationsChromosome(Core.Sudoku targetSudoku) : this(targetSudoku, 9)
-        {
-
-        }
+        /// <param name="targetSudokuBoard">the target sudoku to solve</param>
+        public SudokuPermutationsChromosome(SudokuBoard targetSudokuBoard, object extendedMask, int length) : this(targetSudokuBoard, 9) { }
 
         /// <summary>
         /// Constructor with a mask and a number of genes
         /// </summary>
-        /// <param name="targetCore.Sudoku">the target sudoku to solve</param>
+        /// <param name="targetSudokuBoard">the target sudoku to solve</param>
         /// <param name="length">the number of genes</param>
-        public SudokuPermutationsChromosome(Core.Sudoku targetSudoku, int length) : base(length)
+        public SudokuPermutationsChromosome(SudokuBoard targetSudokuBoard, int length) : this(targetSudokuBoard, null, length) { }
+
+        /// <summary>
+        /// /// Constructor with a mask and extended mask accounting for initial constraint propagation for faster cloning
+        /// </summary>
+        /// <param name="targetSudokuBoard">the target sudoku to solve</param>
+        /// <param name="extendedMask">The cell domains after initial constraint propagation</param>
+        public SudokuPermutationsChromosome(SudokuBoard targetSudokuBoard, Dictionary<int, List<int>> extendedMask) : this(targetSudokuBoard, extendedMask, 9) { }
+
+        /// <param name="targetSudokuBoard">the target sudoku to solve</param>
+        /// <param name="extendedMask">The cell domains after initial constraint propagation</param>
+        /// <param name="length">The number of genes for the sudoku chromosome</param>
+        public SudokuPermutationsChromosome(SudokuBoard targetSudokuBoard, Dictionary<int, List<int>> extendedMask, int length) : base(targetSudokuBoard, extendedMask, length) { }
+
+        public SudokuPermutationsChromosome(object p)
         {
-            TargetSudoku = targetSudoku;
-            TargetRowsPermutations = GetRowsPermutations(TargetSudoku);
-            for (int i = 0; i < Length; i++)
-            {
-                ReplaceGene(i, GenerateGene(i));
-            }
+            this.p = p;
         }
+
 
         /// <summary>
         /// generates a chromosome gene from its index containing a random row permutation
@@ -62,37 +66,15 @@ namespace Sudoku.GeneticAlgorithmSolver
         {
 
             var rnd = RandomizationProvider.Current;
-            int permIdx;
-            do
-            {
-                //we randomize amongst the permutations that account for the target mask.
-                permIdx = rnd.GetInt(0, TargetRowsPermutations[geneIndex].Count);
-                var perm = GetPermutation(geneIndex, permIdx);
-
-                //We pick a random previous row to check compatibility with
-                if (geneIndex == 0)
-                {
-                    //we skip first row
-                    break;
-                }
-                var checkRowIdx = rnd.GetInt(0, geneIndex);
-                var checkPerm = GetPermutation(checkRowIdx);
-                if (Range9.All(i => perm[i] != checkPerm[i]))
-                {
-                    break;
-                }
-
-            } while (true);
-
-
-
+            //we randomize amongst the permutations that account for the target mask.
+            var permIdx = rnd.GetInt(0, TargetRowsPermutations[geneIndex].Count);
             return new Gene(permIdx);
         }
 
         public override IChromosome CreateNew()
         {
-            var toReturn = new SudokuPermutationsChromosome(TargetSudoku);
-            return toReturn;
+            var toReturn = new SudokuPermutationsChromosome(TargetSudokuBoard, ExtendedMask, Length);
+            return (IChromosome)toReturn;
         }
 
 
@@ -100,7 +82,7 @@ namespace Sudoku.GeneticAlgorithmSolver
         /// builds a single Sudoku from the given row permutation genes
         /// </summary>
         /// <returns>a list with the single Sudoku built from the genes</returns>
-        public virtual IList<Core.Sudoku> GetSudokus()
+        public override IList<SudokuBoard> GetSudokus()
         {
             var listInt = new List<int>(81);
             for (int i = 0; i < 9; i++)
@@ -108,9 +90,11 @@ namespace Sudoku.GeneticAlgorithmSolver
                 var perm = GetPermutation(i);
                 listInt.AddRange(perm);
             }
-            var sudoku = new Core.Sudoku(listInt);
-            return new List<Core.Sudoku>(new[] { sudoku });
+            var sudoku = new SudokuBoard(listInt);
+            return new List<SudokuBoard>(new[] { sudoku });
         }
+
+
 
         /// <summary>
         /// Gets the permutation to apply from the index of the row concerned
@@ -123,14 +107,23 @@ namespace Sudoku.GeneticAlgorithmSolver
             return GetPermutation(rowIndex, permIDx);
         }
 
+
+        /// <summary>
+        /// Gets the permutation for a row and given a permutation index, according to the corresponding row's available permutations
+        /// </summary>
+        /// <param name="rowIndex">the row index for the permutation</param>
+        /// <param name="permIDx">the permutation index to retrieve</param>
+        /// <returns></returns>
         protected virtual List<int> GetPermutation(int rowIndex, int permIDx)
         {
-          
+
             // we use a modulo operator in case the gene was swapped:
             // It may contain a number higher than the number of available permutations. 
             var perm = TargetRowsPermutations[rowIndex][permIDx % TargetRowsPermutations[rowIndex].Count].ToList();
             return perm;
         }
+
+
 
         /// <summary>
         /// Gets the permutation to apply from the index of the row concerned
@@ -142,47 +135,51 @@ namespace Sudoku.GeneticAlgorithmSolver
             return (int)GetGene(rowIndex).Value;
         }
 
+        private object GetGene(int rowIndex)
+        {
+            throw new System.NotImplementedException();
+        }
+
 
         /// <summary>
         /// This method computes for each row the list of digit permutations that respect the target mask, that is the list of valid rows discarding columns and boxes
         /// </summary>
-        /// <param name="Core.Sudoku">the target sudoku to account for</param>
+        /// <param name="sudokuBoard">the target sudoku to account for</param>
         /// <returns>the list of permutations available</returns>
-        public IList<IList<IList<int>>> GetRowsPermutations(Core.Sudoku objSudoku)
+        public IList<IList<IList<int>>> GetRowsPermutations()
         {
-            if (objSudoku == null)
+            if (TargetSudokuBoard == null)
             {
                 return UnfilteredPermutations;
             }
 
             // we store permutations to compute them once only for each target Sudoku
-            if (!_rowsPermutations.TryGetValue(objSudoku, out var toReturn))
+            if (!_rowsPermutations.TryGetValue(TargetSudokuBoard, out var toReturn))
             {
                 // Since this is a static member we use a lock to prevent parallelism.
                 // This should be computed once only.
                 lock (_rowsPermutations)
                 {
-                    if (!_rowsPermutations.TryGetValue(objSudoku, out toReturn))
+                    if (!_rowsPermutations.TryGetValue(TargetSudokuBoard, out toReturn))
                     {
-                        toReturn = GetRowsPermutationsUncached(objSudoku);
-                        _rowsPermutations[objSudoku] = toReturn;
+                        toReturn = GetRowsPermutationsUncached();
+                        _rowsPermutations[TargetSudokuBoard] = toReturn;
                     }
                 }
             }
             return toReturn;
         }
 
-        private IList<IList<IList<int>>> GetRowsPermutationsUncached(Core.Sudoku objSudoku)
+        private IList<IList<IList<int>>> GetRowsPermutationsUncached()
         {
-           var toReturn = new List<IList<IList<int>>>(9);
+            var toReturn = new List<IList<IList<int>>>(9);
             for (int i = 0; i < 9; i++)
             {
                 var tempList = new List<IList<int>>();
                 foreach (var perm in AllPermutations)
                 {
-                    // Permutation should match current mask row numbers, and have numbers different that other mask rows
-                    if (!Range9.Any(rowIdx=> Range9.Any(j => objSudoku.GetCell(rowIdx, j) > 0
-                                                && ((rowIdx == i && perm[j] != objSudoku.GetCell(rowIdx, j))||(rowIdx!=i && perm[j] == objSudoku.GetCell(rowIdx, j))))))
+                    // Permutation should be compatible with current row extended mask domains
+                    if (Range9.All(j => ExtendedMask[(i * 9) + j].Contains(perm[j])))
                     {
                         tempList.Add(perm);
                     }
@@ -198,7 +195,7 @@ namespace Sudoku.GeneticAlgorithmSolver
         /// <summary>
         /// Produces 9 copies of the complete list of permutations
         /// </summary>
-        public static IList<IList<IList<int>>> UnfilteredPermutations
+        public readonly IList<IList<IList<int>>> UnfilteredPermutations
         {
             get
             {
@@ -219,7 +216,7 @@ namespace Sudoku.GeneticAlgorithmSolver
         /// <summary>
         /// Builds the complete list permutations for {1,2,3,4,5,6,7,8,9}
         /// </summary>
-        public static IList<IList<int>> AllPermutations
+        public readonly IList<IList<int>> AllPermutations
         {
             get
             {
@@ -238,9 +235,28 @@ namespace Sudoku.GeneticAlgorithmSolver
         }
 
         /// <summary>
+        /// The list of row permutations accounting for the mask
+        /// </summary>
+        public IList<IList<IList<int>>> TargetRowsPermutations
+        {
+            get
+            {
+                if (_targetRowsPermutations == null)
+                {
+                    _targetRowsPermutations = GetRowsPermutations();
+                }
+                return _targetRowsPermutations;
+            }
+        }
+
+        public object ExtendedMask { get; private set; }
+        public SudokuBoard TargetSudokuBoard { get; private set; }
+        public int Length { get; private set; }
+
+        /// <summary>
         /// The list of compatible permutations for a given Sudoku is stored in a static member for fast retrieval
         /// </summary>
-        private static readonly IDictionary<Core.Sudoku, IList<IList<IList<int>>>> _rowsPermutations = new Dictionary<Core.Sudoku, IList<IList<IList<int>>>>();
+        private static readonly IDictionary<SudokuBoard, IList<IList<IList<int>>>> _rowsPermutations = new Dictionary<SudokuBoard, IList<IList<IList<int>>>>();
 
         /// <summary>
         /// The list of row indexes is used many times and thus stored for quicker access.
@@ -250,8 +266,9 @@ namespace Sudoku.GeneticAlgorithmSolver
         /// <summary>
         /// The complete list of unfiltered permutations is stored for quicker access
         /// </summary>
-        private static IList<IList<int>> _allPermutations = (IList<IList<int>>) new List<IList<int>>();
-        private static IList<IList<IList<int>>> _unfilteredPermutations = (IList<IList<IList<int>>>) new List<IList<IList<int>>>();
+        private static IList<IList<int>> _allPermutations = (IList<IList<int>>)new List<IList<int>>();
+        private static IList<IList<IList<int>>> _unfilteredPermutations = (IList<IList<IList<int>>>)new List<IList<IList<int>>>();
+        private object p;
 
         /// <summary>
         /// Computes all possible permutation for a given set
@@ -262,12 +279,12 @@ namespace Sudoku.GeneticAlgorithmSolver
         /// <returns>a list of all permutations for given size as lists of elements.</returns>
         static IList<IList<T>> GetPermutations<T>(IEnumerable<T> list, int length)
         {
-            if (length == 1) return  list.Select(t => (IList<T>) (new T[] { t }.ToList())).ToList();
+            if (length == 1) return list.Select(t => (IList<T>)(new T[] { t }.ToList())).ToList();
 
-         var enumeratedList = list.ToList();
-            return (IList<IList<T>>) GetPermutations(enumeratedList, length - 1)
+            var enumeratedList = list.ToList();
+            return (IList<IList<T>>)GetPermutations(enumeratedList, length - 1)
               .SelectMany(t => enumeratedList.Where(e => !t.Contains(e)),
-                (t1, t2) => (IList<T>) t1.Concat(new T[] { t2 }).ToList()).ToList();
+                (t1, t2) => (IList<T>)t1.Concat(new T[] { t2 }).ToList()).ToList();
         }
 
 

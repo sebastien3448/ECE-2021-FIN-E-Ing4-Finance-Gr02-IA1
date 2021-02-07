@@ -49,6 +49,11 @@ namespace Sudoku.GeneticAlgorithmSolver
             return scores.Sum();
         }
 
+        private double Evaluate(GeneticSharp.SudokuBoard sudoku)
+        {
+            throw new System.NotImplementedException();
+        }
+
         /// <summary>
         /// Evaluates a single Sudoku board by counting the duplicates in rows, boxes
         /// and the digits differing from the target mask.
