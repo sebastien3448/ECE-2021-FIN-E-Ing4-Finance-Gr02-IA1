@@ -1,0 +1,4 @@
+C:\Users\HP\Source\Repos\ECE-2021-FIN-E-Ing4-Finance-Gr02-IA1\Sudoku.GeneticAlgorithm\obj\Debug\netstandard2.0\Sudoku.GeneticAlgorithm.csprojAssemblyReference.cache
+C:\Users\HP\Source\Repos\ECE-2021-FIN-E-Ing4-Finance-Gr02-IA1\Sudoku.GeneticAlgorithm\obj\Debug\netstandard2.0\Sudoku.GeneticAlgorithm.AssemblyInfoInputs.cache
+C:\Users\HP\Source\Repos\ECE-2021-FIN-E-Ing4-Finance-Gr02-IA1\Sudoku.GeneticAlgorithm\obj\Debug\netstandard2.0\Sudoku.GeneticAlgorithm.AssemblyInfo.cs
+C:\Users\HP\Source\Repos\ECE-2021-FIN-E-Ing4-Finance-Gr02-IA1\Sudoku.GeneticAlgorithm\obj\Debug\netstandard2.0\Sudoku.GeneticAlgorithm.csproj.CoreCompileInputs.cache
