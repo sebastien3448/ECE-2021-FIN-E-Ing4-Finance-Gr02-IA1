@@ -1,0 +1,4 @@
+C:\Users\HP\Source\Repos\ECE-2021-FIN-E-Ing4-Finance-Gr02-IA1\Sudoku.Benchmark\obj\Debug\netcoreapp3.1\Sudoku.Benchmark.csprojAssemblyReference.cache
+C:\Users\HP\Source\Repos\ECE-2021-FIN-E-Ing4-Finance-Gr02-IA1\Sudoku.Benchmark\obj\Debug\netcoreapp3.1\Sudoku.Benchmark.AssemblyInfoInputs.cache
+C:\Users\HP\Source\Repos\ECE-2021-FIN-E-Ing4-Finance-Gr02-IA1\Sudoku.Benchmark\obj\Debug\netcoreapp3.1\Sudoku.Benchmark.AssemblyInfo.cs
+C:\Users\HP\Source\Repos\ECE-2021-FIN-E-Ing4-Finance-Gr02-IA1\Sudoku.Benchmark\obj\Debug\netcoreapp3.1\Sudoku.Benchmark.csproj.CoreCompileInputs.cache
